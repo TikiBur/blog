@@ -1,7 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
 body {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  font-optical-sizing: auto;
+  font-style: normal;
   background-color: #EBEEF3;
   margin: 0;
   padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+}
+
+span {
+  font-weight: 400 !important;
 }
 
 .header {
@@ -446,6 +460,7 @@ body {
 }
 
 .create {
+  width: 6.5rem;
   border: 1px solid #52C41A;
   color: #52C41A;
   border-radius: .2rem;

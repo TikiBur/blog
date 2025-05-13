@@ -12,7 +12,12 @@ const Home = () => {
   const [totalArticles, setTotalArticles] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+
+  // ✅ Инициализируем currentPage из localStorage или ставим 1
+  const [currentPage, setCurrentPage] = useState(() => {
+    return parseInt(localStorage.getItem('currentPage')) || 1;
+  });
+
   const [likedArticles, setLikedArticles] = useState(() => {
     const saved = localStorage.getItem('likedArticles');
     return saved ? JSON.parse(saved) : {};
@@ -60,8 +65,10 @@ const Home = () => {
     fetchArticles(currentPage);
   }, [currentPage]);
 
+  // ✅ Сохраняем текущую страницу при её изменении
   const handlePageChange = (page) => {
     setCurrentPage(page);
+    localStorage.setItem('currentPage', page);
   };
 
   const handleLikeToggle = (slug, newState) => {
@@ -109,81 +116,62 @@ const Home = () => {
       {!loading && articles.length > 0 && (
         <>
           {articles.map((article) => (
-            <div key={article.slug} className="article-item" style={{ marginBottom: 20 }}>
-              <div className="like">
-                <Link to={`/articles/${article.slug}`} className="article-title">
-                  <h3 style={{margin: '0'}}>{article.title || 'Untitled'}</h3>
-                </Link>
-                <LikeButton 
-                  style={{display: 'flex', alignItems: 'center'}}
-                  slug={article.slug} 
-                  favorited={!!article.favorited} 
-                  favoritesCount={article.favoritesCount || 0} 
-                  onLikeToggle={(newState) => handleLikeToggle(article.slug, newState)}
-                />
-              </div>
-              
-              {article.tagList && article.tagList.length > 0 && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
-                  {article.tagList.map(tag => (
-                    <span 
-                      key={tag}
-                      style={{
-                        marginTop: '.5rem',
-                        padding: '3px 10px',
-                        background: '#fff',
-                        border: '1px solid #000',
-                        borderRadius: '3px',
-                        fontSize: '.8rem',
-                        color: '#555'
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-              
-              <p>{article.description || 'No description'}</p>
-              <div className="article-meta" style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginLeft: 'auto',
-                order: 2
-              }}>
-                <div style={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-end',
-                  fontSize: '1.5rem',
-                  lineHeight: '1.2',
-                  color: '#000000D9'
-                }}>
-                  <span style={{ fontWeight: 500 }}>
-                    {article.author?.username || 'Unknown'}
-                  </span>
-                  <span style={{ color: '#666', fontSize: '1rem'}}>
-                    {article.createdAt ? new Date(article.createdAt).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric'
-                    }) : 'Unknown date'}
-                  </span>
-                </div>
-                <img 
-                  src={article.author?.image || '../src/assets/images/man.png'} 
-                  alt="Author" 
-                  style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '50%',
-                    objectFit: 'cover'
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+  <div key={article.slug} className="article-item" style={{ marginBottom: 20 }}>
+    <div className="like">
+      <Link to={`/articles/${article.slug}`} className="article-title">
+        <h3 style={{ margin: '0' }}>{article.title || 'Untitled'}</h3>
+      </Link>
+      <LikeButton
+        style={{ display: 'flex', alignItems: 'center' }}
+        slug={article.slug}
+        favorited={!!article.favorited}
+        favoritesCount={article.favoritesCount || 0}
+        onLikeToggle={(newState) => handleLikeToggle(article.slug, newState)}
+      />
+    </div>
+
+    <p>{article.description || 'No description'}</p>
+
+        <div className="article-meta" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginLeft: 'auto',
+          marginTop: '1rem',
+          order: 2
+        }}>
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            fontSize: '1.5rem',
+            lineHeight: '1.2',
+            color: '#000000D9'
+          }}>
+            <span style={{ fontWeight: 500 }}>
+              {article.author?.username || 'Unknown'}
+            </span>
+            <span style={{ color: '#666', fontSize: '1rem' }}>
+              {article.createdAt ? new Date(article.createdAt).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+              }) : 'Unknown date'}
+            </span>
+          </div>
+          <img 
+            src={article.author?.image || 'https://via.placeholder.com/50'} 
+            alt="Author" 
+            style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
+      </div>
+    ))}
 
           <Pagination
             current={currentPage}

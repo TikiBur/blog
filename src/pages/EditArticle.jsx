@@ -5,53 +5,90 @@ import ErrorMessage from '../components/ErrorMessage';
 import { useUser } from '../context/UserContext';
 import { Spin } from 'antd';
 
+const API_URL = 'https://blog-platform.kata.academy/api';
+
 const EditArticle = () => {
   const { slug } = useParams();
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const { token } = useUser();
   const navigate = useNavigate();
-  const [article, setArticle] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [serverError, setServerError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [tagInputs, setTagInputs] = useState(['', '']);
 
+  // Сохранение данных в localStorage
+  const saveToLocalStorage = (key, value) => {
+    localStorage.setItem(key, JSON.stringify(value));
+  };
+
+  // Получение данных из localStorage
+  const getFromLocalStorage = (key) => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+  };
+
   useEffect(() => {
     if (!token) {
       navigate('/sign-in');
-    } else {
-      setAuthChecked(true);
+      return;
     }
+    setAuthChecked(true);
 
     const fetchArticle = async () => {
+      setIsLoading(true);
       try {
-        const res = await fetch(`https://blog-platform.kata.academy/api/articles/${slug}`);
+        const res = await fetch(`${API_URL}/articles/${slug}`);
+        if (!res.ok) throw new Error('Ошибка загрузки статьи');
+        
         const data = await res.json();
-        setArticle(data.article);
-        setValue('title', data.article.title);
-        setValue('description', data.article.description);
-        setValue('body', data.article.body);
-        setTagInputs(data.article.tagList.length > 0 ? data.article.tagList : ['', '']);
+        if (!data.article) throw new Error('Статья не найдена');
+
+        // Устанавливаем значения из localStorage или API
+        setValue('title', getFromLocalStorage('title') || data.article.title);
+        setValue('description', getFromLocalStorage('description') || data.article.description);
+        setValue('body', getFromLocalStorage('body') || data.article.body);
+
+        // Для тегов проверяем localStorage и API
+        const storedTags = getFromLocalStorage('tags');
+        setTagInputs(
+          storedTags || 
+          (data.article.tagList.length > 0 ? data.article.tagList : ['', ''])
+        );
+
+        // Сохраняем начальные значения в localStorage
+        if (!getFromLocalStorage('title')) {
+          saveToLocalStorage('title', data.article.title);
+          saveToLocalStorage('description', data.article.description);
+          saveToLocalStorage('body', data.article.body);
+          saveToLocalStorage('tags', data.article.tagList.length > 0 ? data.article.tagList : ['', '']);
+        }
       } catch (error) {
-        setServerError('Ошибка загрузки статьи');
+        setServerError(error.message || 'Ошибка при загрузке статьи');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (slug) {
-      fetchArticle();
-    }
+    fetchArticle();
   }, [slug, setValue, token, navigate]);
+
+  // Обработчики изменений полей
+  const handleInputChange = (key, value) => {
+    saveToLocalStorage(key, value);
+  };
 
   const handleTagChange = (index, value) => {
     const newTags = [...tagInputs];
     newTags[index] = value;
     setTagInputs(newTags);
+    saveToLocalStorage('tags', newTags);
   };
 
   const addTagInput = () => {
-    setTagInputs([...tagInputs, '']);
+    const newTags = [...tagInputs, ''];
+    setTagInputs(newTags);
+    saveToLocalStorage('tags', newTags);
   };
 
   const removeTagInput = (index) => {
@@ -59,6 +96,7 @@ const EditArticle = () => {
     const newTags = [...tagInputs];
     newTags.splice(index, 1);
     setTagInputs(newTags);
+    saveToLocalStorage('tags', newTags);
   };
 
   const onSubmit = async (data) => {
@@ -77,7 +115,7 @@ const EditArticle = () => {
     };
 
     try {
-      const res = await fetch(`https://blog-platform.kata.academy/api/articles/${slug}`, {
+      const res = await fetch(`${API_URL}/articles/${slug}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -88,8 +126,14 @@ const EditArticle = () => {
 
       if (!res.ok) {
         const result = await res.json();
-        throw result.errors || new Error('Failed to update article');
+        throw result.errors || new Error('Ошибка обновления статьи');
       }
+
+      // Очищаем localStorage после успешного обновления
+      localStorage.removeItem('title');
+      localStorage.removeItem('description');
+      localStorage.removeItem('body');
+      localStorage.removeItem('tags');
 
       navigate(`/articles/${slug}`);
     } catch (errors) {
@@ -103,11 +147,7 @@ const EditArticle = () => {
     }
   };
 
-  if (!authChecked) {
-    return <Spin size="large" style={{ display: 'block', margin: '20px auto' }} />;
-  }
-
-  if (isLoading) {
+  if (!authChecked || isLoading) {
     return <Spin size="large" style={{ display: 'block', margin: '20px auto' }} />;
   }
 
@@ -129,6 +169,7 @@ const EditArticle = () => {
               borderRadius: '4px'
             }}
             {...register('title', { required: 'Заголовок обязателен' })}
+            onChange={(e) => handleInputChange('title', e.target.value)}
             disabled={isLoading}
           />
           {errors.title && <ErrorMessage message={errors.title.message} />}
@@ -146,6 +187,7 @@ const EditArticle = () => {
               borderRadius: '4px'
             }}
             {...register('description', { required: 'Описание обязательно' })}
+            onChange={(e) => handleInputChange('description', e.target.value)}
             disabled={isLoading}
           />
           {errors.description && <ErrorMessage message={errors.description.message} />}
@@ -163,6 +205,7 @@ const EditArticle = () => {
               minHeight: '168px'
             }}
             {...register('body', { required: 'Текст обязателен' })}
+            onChange={(e) => handleInputChange('body', e.target.value)}
             disabled={isLoading}
           />
           {errors.body && <ErrorMessage message={errors.body.message} />}
