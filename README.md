@@ -1,1 +1,1 @@
-https://blogs-psi-opal.vercel.app/
+https://blogs-psi-opal.vercel.app/#/
